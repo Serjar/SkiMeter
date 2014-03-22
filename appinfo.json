@@ -1,0 +1,45 @@
+{
+    "versionLabel": "1.0",
+    "uuid": "3a79985c-03c3-4aa3-82e4-6383d1ebfabd",
+    "appKeys": {},
+    "longName": "SkiMeter",
+    "versionCode": 1,
+    "capabilities": [
+        ""
+    ],
+    "shortName": "SkiMeter",
+    "companyName": "sjarne@gmail.com",
+    "watchapp": {
+        "watchface": true
+    },
+    "resources": {
+        "media": [
+        {
+        "type": "font",
+        "name": "FONT_ROBOTO_CONDENSED_21",
+        "file": "fonts/Roboto-Condensed.ttf"
+        },
+        {
+        "type": "font",
+        "name": "FONT_VERA_21",
+        "file": "fonts/VeraMoBd.ttf"
+        },
+        {
+        "name": "SKIING",
+        "file": "icons/skiing.png",
+        "type": "png"
+        }, 
+         {
+        "name": "INLIFT",
+        "file": "icons/chair-lift.png",
+        "type": "png"
+        },
+         {
+        "name": "RESTING",
+        "file": "icons/resting.png",
+        "type": "png"
+        }
+
+      ]
+    }
+}
