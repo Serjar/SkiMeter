@@ -16,30 +16,7 @@ static AccelData lastAccel; // used from group to group to hold last values meas
 // FN Declares
 uint32_t derivate_data ( AccelData *, AccelData *, uint32_t);
 uint32_t max_g_calc (AccelData *, uint32_t);
-
-
-// SQRT INTEGER
-
-unsigned short isqrt(unsigned long a) {
-    unsigned long rem = 0;
-    unsigned int root = 0;
-    unsigned int i;
-
-    for (i = 0; i < 16; i++) {
-        root <<= 1;
-        rem <<= 2;
-        rem += a >> 30;
-        a <<= 2;
-
-        if (root < rem) {
-            root++;
-            rem -= root;
-            root++;
-        }
-    }
-
-    return (unsigned short) (root >> 1);
-}
+unsigned short isqrt(unsigned long );
 
 ///// Process accel events 
 
@@ -77,7 +54,7 @@ void accel_init() {
    lastAccel.x = lastAccel.y = lastAccel.z = 0;
 
    accel_data_service_subscribe(NUMSAMPLES, (AccelDataHandler) &accel_data_handler);
-   accel_service_set_sampling_rate(ACCEL_SAMPLING_25HZ);
+   accel_service_set_sampling_rate(ACCEL_SAMPLING_10HZ);
 }   
 
 void accel_deinit() {
@@ -129,8 +106,8 @@ uint32_t derivate_data ( AccelData *data, AccelData *derData, uint32_t samples )
            derData[j].timestamp = data[i+1].timestamp;
 
 
-    app_log(APP_LOG_LEVEL_INFO, __FILE__ , __LINE__, "Orig: ,%i,%i,%i",data[i+1].x,data[i+1].y,data[i+1].z );
-    app_log(APP_LOG_LEVEL_INFO, __FILE__ , __LINE__, "Deriv: ,%i,%i,%i",derData[j].x,derData[j].y,derData[j].z );
+    app_log(APP_LOG_LEVEL_INFO, __FILE__ , __LINE__, "Orig: ,%i,%i,%i, %llu ",data[i+1].x,data[i+1].y,data[i+1].z, (long long unsigned int) data[i+1].timestamp );
+//    app_log(APP_LOG_LEVEL_INFO, __FILE__ , __LINE__, "Deriv: ,%i,%i,%i",derData[j].x,derData[j].y,derData[j].z );
 
 /*
     if (j>4) 
@@ -177,5 +154,31 @@ uint32_t max_g_calc (AccelData *data, uint32_t numsamples) {
 	    periodsLift++;
     }
     return i;
+}
+
+
+//
+// SQRT INTEGER
+//
+
+unsigned short isqrt(unsigned long a) {
+    unsigned long rem = 0;
+    unsigned int root = 0;
+    unsigned int i;
+
+    for (i = 0; i < 16; i++) {
+        root <<= 1;
+        rem <<= 2;
+        rem += a >> 30;
+        a <<= 2;
+
+        if (root < rem) {
+            root++;
+            rem -= root;
+            root++;
+        }
+    }
+
+    return (unsigned short) (root >> 1);
 }
 
