@@ -1,6 +1,6 @@
-#define NUMSAMPLES 1150
-#define MOVINGTHRESHOLD 200
-#define STATICTHRESHOLD 50
+#define NUMSAMPLES 50
+#define MOVINGTHRESHOLD 100
+#define STATICTHRESHOLD 70 
 
 void accel_init();
 
