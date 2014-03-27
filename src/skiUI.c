@@ -168,6 +168,7 @@ int destroyUI (Window * my_window) {
     gbitmap_destroy(icon2);
     gbitmap_destroy(icon3);
     bitmap_layer_destroy(icon_layer);
+    action_bar_layer_destroy(action_bar);
     return 00;
 }
 
