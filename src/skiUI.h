@@ -1,6 +1,6 @@
 // UI creation and update functions
 
-int createUI (Window *);
+int createUI (Window *, void *);
 int destroyUI (Window *);
 
 

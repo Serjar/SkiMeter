@@ -13,7 +13,7 @@ static char bufINT2[] = "000000";
 static char bufINT3[] = "000000";
 
 // UI objects 
-
+ActionBarLayer *action_bar;
 TextLayer *text_layer;
 InverterLayer *inv_layer;
 
@@ -59,7 +59,7 @@ void update_icon_counters(void);
 // Create and position UI elements. 
 //
 
-int createUI (Window * my_window) {
+int createUI (Window * my_window, void * click_config_provider) {
     
     font_Roboto = fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_ROBOTO_CONDENSED_21 ));
     text_layer = text_layer_create( POS_TIME );
@@ -114,6 +114,16 @@ int createUI (Window * my_window) {
 
     layer_add_child(window_get_root_layer(my_window), (Layer*) text_layer_icon3);
     
+// Action Bar setup
+
+    action_bar = action_bar_layer_create();
+  // Associate the action bar with the window:
+    action_bar_layer_add_to_window(action_bar, my_window);
+  // Set the click config provider:
+    action_bar_layer_set_click_config_provider(action_bar, click_config_provider);
+  // pending - set the icons
+  //  action_bar_layer_set_icon(action_bar, BUTTON_ID_UP, &my_icon_previous);
+  //  action_bar_layer_set_icon(action_bar, BUTTON_ID_DOWN, &my_icon_next);
 
 //
 
@@ -146,7 +156,6 @@ void update_icons_counters () {
     text_layer_set_text(text_layer_icon3, bufINT3);
 
 }
-
 
 
 int destroyUI (Window * my_window) {

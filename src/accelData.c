@@ -13,6 +13,10 @@ static AccelData *derivData;
 static AccelData lastAccel; // used from group to group to hold last values measured
 static uint32_t vectorData[NUMSAMPLES];
 
+static uint32_t thresholdUp;
+static uint32_t thresholdDown;
+
+
 //static Acceldata lastDerivs[INTEGFACTOR];
 // FN Declares
 
@@ -32,7 +36,7 @@ void accel_data_handler(AccelData *data, uint32_t num_samples) {
 
     app_log(APP_LOG_LEVEL_INFO, __FILE__ , __LINE__, "Event accel with %i samples",(int) num_samples);
     
-    AccelData *derivData;
+//    AccelData *derivData;
     uint32_t validSamples = 0;
     uint32_t vectorSamples = 0;
 
@@ -55,6 +59,35 @@ void accel_data_handler(AccelData *data, uint32_t num_samples) {
     }
 }
 
+///// Calibration of events
+
+static uint32_t calibrationCount;
+static uint32_t * calibrationSamples;
+
+void calibrate_data_handler(AccelData *data, uint32_t num_samples) {
+
+    app_log(APP_LOG_LEVEL_INFO, __FILE__ , __LINE__, "Calibrating with %i samples",(int) num_samples);
+
+    uint32_t vectorSamples = 0;
+
+    if (num_samples) {
+        vectorSamples = get_g_data(data, vectorData, num_samples);
+        memcpy( &calibrationSamples[calibrationCount], vectorData, sizeof(uint32_t) * vectorSamples); 
+        calibrationCount += vectorSamples;
+        for (uint32_t x = 0; x<vectorSamples ; x++)
+            if (thresholdUp < vectorData[x]) {
+                thresholdUp = vectorData[x];
+            }
+                  app_log(APP_LOG_LEVEL_INFO, __FILE__ , __LINE__, "TUp: ,%i ",(int)thresholdUp); 
+// keep last accel readings
+        lastAccel = data[num_samples-1];
+    }
+}
+
+
+//
+// Init-Deinit functions
+//
 
 void accel_init() {
    periodsStatic = 0;
@@ -62,22 +95,70 @@ void accel_init() {
    periodsSki = 0;
 
    pendingDecel = false;
+   if (persist_get_size	(THUPKEY) == E_DOES_NOT_EXIST) {	
+       thresholdUp = MOVINGTHRESHOLD;
+       thresholdDown = STATICTHRESHOLD;
+   }
+   else {
+       thresholdUp = persist_read_int (THUPKEY);
+       thresholdDown = persist_read_int (THDOWNKEY);
+   }
 
    derivData = NULL;
-   lastAccel.x = lastAccel.y = lastAccel.z = 0;
-
+   lastAccel.x = lastAccel.y = lastAccel.z = lastAccel.timestamp = 0;
+   app_log(APP_LOG_LEVEL_INFO, __FILE__ , __LINE__, "Subscribe");
    accel_data_service_subscribe(NUMSAMPLES, (AccelDataHandler) &accel_data_handler);
    accel_service_set_sampling_rate(ACCEL_SAMPLING_25HZ);
 }   
 
 void accel_deinit() {
    accel_data_service_unsubscribe();
-// destroy
 }  
 
 
+void calibrate_accel_start() {
+   periodsStatic = 0;
+   periodsLift = 0;
+   periodsSki = 0;
+   calibrationCount = 0;
 
-// Get Values
+   calibrationSamples = malloc (DATAHZ * 10 * sizeof(uint32_t)); // keeps space for 10 seconds of samples
+
+   pendingDecel = false;
+   thresholdUp = STATICTHRESHOLD;
+   thresholdDown = STATICTHRESHOLD;
+   derivData = NULL;
+   lastAccel.x = lastAccel.y = lastAccel.z = lastAccel.timestamp = 0;
+   app_log(APP_LOG_LEVEL_INFO, __FILE__ , __LINE__, "Subscribe Calib");
+   accel_data_service_subscribe(NUMSAMPLES, (AccelDataHandler) &calibrate_data_handler);
+   accel_service_set_sampling_rate(ACCEL_SAMPLING_25HZ);
+   vibes_short_pulse();
+}
+
+
+void calibrate_accel_end( bool keepData) {
+    vibes_short_pulse();
+    accel_data_service_unsubscribe();
+
+    if (keepData) {
+
+        thresholdUp = (uint32_t) (thresholdUp - (thresholdUp>>2)); 
+ // threshold set to 75% of max value: x - x/4
+        persist_write_int(THUPKEY, thresholdUp);
+        persist_write_int(THDOWNKEY, thresholdUp>>1);
+        periodsLift = calibrationCount;
+        periodsSki = strokesDetected( calibrationSamples, calibrationCount);    
+        periodsStatic = thresholdUp;
+        lastAccel.timestamp = 0;
+    }
+    else 
+        periodsSki = 0;
+    free (calibrationSamples);
+}
+
+//
+// Get Values to external clients in int p[3] array
+//
 
 int get_data_values ( int * p ) {
     p[0] = periodsSki;
@@ -86,10 +167,13 @@ int get_data_values ( int * p ) {
     return 0;
 }
 
+///////////////////  INTERNAL /////////////////
+
    
 //
 // get derivative of accel on 3 axis
 //
+
 uint32_t derivate_data ( AccelData *data, AccelData *derData, uint32_t samples ) {
     uint32_t j=0;
     if (lastAccel.timestamp != 0) {
@@ -99,7 +183,8 @@ uint32_t derivate_data ( AccelData *data, AccelData *derData, uint32_t samples )
            derData[j].timestamp = lastAccel.timestamp;
            j++;
     }
-    
+
+// pending: take it out because it's done in get_g_data as well    
     data[0].x >>= 4;
     data[0].y >>= 4;
     data[0].z >>= 4;
@@ -129,17 +214,14 @@ uint32_t derivate_data ( AccelData *data, AccelData *derData, uint32_t samples )
     return j-1;
 }
 
+
 //
-// get absolute G
+// get absolute G vector
 //
+
 uint32_t get_g_data ( AccelData *data, uint32_t *gData, uint32_t samples ) {
     uint32_t j=0;
     uint32_t i=0;
-    if (lastAccel.timestamp != 0) {
-         gData[j] = isqrt( lastAccel.x * lastAccel.x + lastAccel.y * lastAccel.y + lastAccel.z * lastAccel.z);
-         j++;
-         samples ++;
-    }
 
     for ( ; i < samples ; i++)
        if (!data[i].did_vibrate) {
@@ -151,39 +233,15 @@ uint32_t get_g_data ( AccelData *data, uint32_t *gData, uint32_t samples ) {
 
            gData[j] = isqrt( data[i].x * data[i].x + data[i].y * data[i].y + data[i].z * data[i].z);
            app_log(APP_LOG_LEVEL_INFO, __FILE__ , __LINE__, "gDt: ,%i ",(int)gData[j]);
-       j++;
+           j++;
        }
 
     return j-1;
 }
 
 
-
 //
-//
-//
-
-uint32_t max_g_calc (AccelData *data, uint32_t numsamples) {
-    uint32_t i = 0;
-
-    for (i=0; i<numsamples ; i++) {
-      int absolG = isqrt( data[i].x * data[i].x + data[i].y * data[i].y + data[i].z * data[i].z); 
-      app_log(APP_LOG_LEVEL_INFO, __FILE__ , __LINE__, "ABSOL: %i",absolG);
-      if ( absolG > MOVINGTHRESHOLD)
-	  pendingDecel = true;
-      else
-         if((absolG < STATICTHRESHOLD ) && pendingDecel ){
-            periodsSki++;
-            pendingDecel = false;
-         }
-         //else
-	 //   periodsLift++;
-    }
-    return i;
-}
-
-//
-// Single absolute differential calculation
+// Single absolute strike combination calculation: Up over the threshold then down under 2nd
 //
 
 uint32_t strokesDetected ( uint32_t  *gData,  uint32_t numsamples) {
@@ -191,10 +249,10 @@ uint32_t strokesDetected ( uint32_t  *gData,  uint32_t numsamples) {
 
     for (uint32_t i=0; i<numsamples ; i++) {
     
-       if ( gData[i] > MOVINGTHRESHOLD)
+       if ( gData[i] > (uint32_t)thresholdUp)
            pendingDecel = true;
        else
-           if((gData[i] < STATICTHRESHOLD ) && pendingDecel ){
+           if((gData[i] <  (uint32_t)thresholdDown ) && pendingDecel ){
                pendingDecel = false;
                count++;
          }
@@ -230,6 +288,30 @@ unsigned short isqrt(unsigned long a) {
 }
 
 // code bench
+
+//
+//
+//
+
+uint32_t max_g_calc (AccelData *data, uint32_t numsamples) {
+    uint32_t i = 0;
+
+    for (i=0; i<numsamples ; i++) {
+      int absolG = isqrt( data[i].x * data[i].x + data[i].y * data[i].y + data[i].z * data[i].z);
+      app_log(APP_LOG_LEVEL_INFO, __FILE__ , __LINE__, "ABSOL: %i",absolG);
+      if ( absolG > MOVINGTHRESHOLD)
+          pendingDecel = true;
+      else
+         if((absolG < STATICTHRESHOLD ) && pendingDecel ){
+            periodsSki++;
+            pendingDecel = false;
+         }
+         //else
+         //   periodsLift++;
+    }
+    return i;
+}
+
 
 /*
     if (j>4)

@@ -10,7 +10,7 @@
     "shortName": "SkiMeter",
     "companyName": "sjarne@gmail.com",
     "watchapp": {
-        "watchface": true
+        "watchface": false
     },
     "resources": {
         "media": [
