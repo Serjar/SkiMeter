@@ -6,6 +6,8 @@
 #define THUPKEY 3
 #define THDOWNKEY 4
 
+#define MAXCALIBTRY 30
+
 // FNS Exported
 
 void accel_init();

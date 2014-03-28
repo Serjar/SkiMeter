@@ -23,6 +23,9 @@ GBitmap *icon1;
 GBitmap *icon2;
 GBitmap *icon3;
 
+GBitmap * abBitmap1;
+GBitmap * abBitmap2;
+
 TextLayer *text_layer_icon1;
 TextLayer *text_layer_icon2;
 TextLayer *text_layer_icon3;
@@ -121,9 +124,11 @@ int createUI (Window * my_window, void * click_config_provider) {
     action_bar_layer_add_to_window(action_bar, my_window);
   // Set the click config provider:
     action_bar_layer_set_click_config_provider(action_bar, click_config_provider);
-  // pending - set the icons
-  //  action_bar_layer_set_icon(action_bar, BUTTON_ID_UP, &my_icon_previous);
-  //  action_bar_layer_set_icon(action_bar, BUTTON_ID_DOWN, &my_icon_next);
+  // set the icons
+    abBitmap1 = gbitmap_create_with_resource(RESOURCE_ID_PLAY);
+    action_bar_layer_set_icon(action_bar, BUTTON_ID_DOWN, abBitmap1);
+    abBitmap2 = gbitmap_create_with_resource(RESOURCE_ID_CONFIG);
+    action_bar_layer_set_icon(action_bar, BUTTON_ID_SELECT, abBitmap2);
 
 //
 
@@ -168,6 +173,8 @@ int destroyUI (Window * my_window) {
     gbitmap_destroy(icon2);
     gbitmap_destroy(icon3);
     bitmap_layer_destroy(icon_layer);
+    gbitmap_destroy(abBitmap1);
+    gbitmap_destroy(abBitmap2);
     action_bar_layer_destroy(action_bar);
     return 00;
 }

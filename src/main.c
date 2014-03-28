@@ -91,8 +91,8 @@ void reset_counter_handler (ClickRecognizerRef recognizer, Window *window)
 
 void click_config_provider(void *context) {
     window_single_click_subscribe(BUTTON_ID_UP, (ClickHandler) reset_counter_handler);
-    window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) button_calibrate_handler);
-    window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) switch_reading_handler);
+    window_single_click_subscribe(BUTTON_ID_SELECT, (ClickHandler) button_calibrate_handler);
+    window_single_click_subscribe(BUTTON_ID_DOWN, (ClickHandler) switch_reading_handler);
 
 }
 

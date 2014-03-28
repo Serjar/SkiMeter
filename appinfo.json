@@ -38,6 +38,16 @@
         "name": "RESTING",
         "file": "icons/resting.png",
         "type": "png"
+        },
+         {
+        "name": "PLAY",
+        "file": "icons/play.png",
+        "type": "png"
+        },
+         {
+        "name": "CONFIG",
+        "file": "icons/sprocket.png",
+        "type": "png"
         }
 
       ]

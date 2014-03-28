@@ -31,7 +31,7 @@ static void calwindow_load(Window *window) {
     text_layer_set_font(text_calibrate_layer, font);
 
     layer_add_child(window_get_root_layer(calwindow), (Layer*) text_calibrate_layer);
-    text_layer_set_text(text_calibrate_layer, "Calibrate movements now for about 10 seconds, counting your strokes .");
+    text_layer_set_text(text_calibrate_layer, "Calibrate movements now doing 3 times the move you want to measure.");
     calibrate_accel_start();
 
     app_timer_register( 9000, calibrate_accel_deinit, NULL); 	
@@ -53,7 +53,7 @@ void calibrate_accel_UI(Window * window) {
         .load = calwindow_load,
         .unload = calwindow_unload
     });
-
+    vibes_short_pulse();
     window_stack_push(calwindow, true);
 }
 
@@ -61,11 +61,23 @@ void calibrate_accel_UI(Window * window) {
 //
 //
 
+void close_window( void * data ){
+    window_destroy(window_stack_pop(true));
+}
+
 
 void calibrate_accel_deinit( void * data) {
+    int p[3];
     app_log(APP_LOG_LEVEL_INFO, __FILE__ , __LINE__, "End Calibration");
     calibrate_accel_end(data == NULL);
-    window_destroy(window_stack_pop(true));
+    get_data_values(p);
+    if (p[0] != 3) 
+        text_layer_set_text(text_calibrate_layer, "Calibrate not successful!! Using Standard");
+    else
+        text_layer_set_text(text_calibrate_layer, "Calibration successful!! Using custom level")
+;
+
+    app_timer_register(3000, close_window, data);
 }
 
 

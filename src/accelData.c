@@ -137,19 +137,32 @@ void calibrate_accel_start() {
 
 
 void calibrate_accel_end( bool keepData) {
+    int tries = 0;
+
     vibes_short_pulse();
     accel_data_service_unsubscribe();
 
     if (keepData) {
-
-        thresholdUp = (uint32_t) (thresholdUp - (thresholdUp>>2)); 
- // threshold set to 75% of max value: x - x/4
-        persist_write_int(THUPKEY, thresholdUp);
-        persist_write_int(THDOWNKEY, thresholdUp>>1);
-        periodsLift = calibrationCount;
-        periodsSki = strokesDetected( calibrationSamples, calibrationCount);    
-        periodsStatic = thresholdUp;
-        lastAccel.timestamp = 0;
+          thresholdUp -= (thresholdUp>>2);
+          // threshold set to 75% of max value: x - x/4, down = x'/2
+          while ((periodsSki != 3) && (tries < MAXCALIBTRY)) {
+               tries++;
+	 // threshold set to 75% of max value: x - x/4, down = x'/2
+         //    thresholdDown = thresholdUp>>1;
+	       periodsLift = calibrationCount;
+	       periodsSki = strokesDetected( calibrationSamples, calibrationCount);    
+               periodsStatic = thresholdUp;
+               lastAccel.timestamp = 0;
+               app_log(APP_LOG_LEVEL_INFO, __FILE__ , __LINE__, "Calib detected: %i", (int)periodsSki);
+               if (periodsSki > 3) thresholdUp += thresholdUp>>3;
+               if (periodsSki < 3) thresholdUp -= thresholdUp>>3;
+           }
+       if (periodsSki != 3) {
+           thresholdUp = MOVINGTHRESHOLD;
+           thresholdDown = STATICTHRESHOLD;
+       }
+       persist_write_int(THUPKEY, thresholdUp);
+       persist_write_int(THDOWNKEY, thresholdUp>>1);
     }
     else 
         periodsSki = 0;
